@@ -60,7 +60,13 @@ module Controller(
         case (state)
             CONTROLLER_STATE_RESET:
                 next_state <= CONTROLLER_STATE_IDLE;
-            //CONTROLLER_STATE_IDLE:
+            CONTROLLER_STATE_IDLE:
+            begin
+                if (play_command) 
+                    next_state <= CONTROLLER_STATE_PLAYING;
+                else if(record_command)
+                    next_state <= CONTROLLER_STATE_RECORDING;
+            end
             //CONTROLLER_STATE_PLAYING:
             //CONTROLLER_STATE_RECORDING:
             //CONTROLLER_STATE_ERROR:

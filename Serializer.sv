@@ -5,29 +5,37 @@ module Serializer #(
     parameter SYSTEM_FREQUENCY = 100000000,
     parameter SAMPLING_FREQUENCY = 1000000)
 (
-    input clock_i,
-    input enable_i,
+    input logic clock_i,
+    input logic enable_i,
 
-    output done_o,
-    input [15:0] Data_i,
+    output logic done_o,
+    input logic [15:0] Data_i,
 
-    output pwm_audio_o Output   
+    output logic pwm_audio_o   
 );
-    logic [7:0] counter;
+    //holds the current index of the bit
+    integer index;
 
     always_ff @(posedge clock_i) begin
-        if(enable_i) begin
-            Data_i = Data_i >> 1;
-            Output = Data_i[0];
+        if (done_o)
+            //reset the done signal
+            done_o = 0; 
+        if(enable_i && !done_o) begin
+            //Set the output to the current value 
+            pwm_audio_o = Data_i[index];
 
-            counter = counter + 1'b1;
-            if (counter == 16) begin
-                done_o <= 1'b0;
-                counter <= 7'b0;
+            if (index == 0) begin
+                //raise the done signal if all bits have been shifted out
+                done_o <= 1;
+                //reset the index
+                index <= (WORD_LENGTH-1);
+            end else begin
+                //decrement the index
+                index = index + 1;
             end 
         end else begin
-            counter <= 1'b0;
-            done_0 <= 1'b0;
+            index <= (WORD_LENGTH-1);
+            done_o <= 0;
         end
     end
 endmodule
