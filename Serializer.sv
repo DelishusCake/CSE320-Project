@@ -22,8 +22,8 @@ module Serializer #(
 
             counter = counter + 1'b1;
             if (counter == 16) begin
-                done_o = 1'b0;
-                counter = 7'b0;
+                done_o <= 1'b0;
+                counter <= 7'b0;
             end 
         end else begin
             counter <= 1'b0;
