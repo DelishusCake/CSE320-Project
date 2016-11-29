@@ -10,7 +10,7 @@ module ClockDivider #(
     (
         input logic clock_i,
         input logic enable_i,
-        output logic clock_o,
+        output logic clock_o
     );
 
     parameter COUNT = (FREQUENCY_IN/(2*FREQUENCY_OUT));
@@ -51,7 +51,8 @@ module Deserializer #(
     ClockDivider #(WORD_LENGTH,SYSTEM_FREQUENCY,SAMPLING_FREQUENCY) pdm_divider(clock_i, enable_i, pdm_clk_o);
 
     //tie the right/left select to low (left)
-    pdm_lrsel_o <= 1'b0;
+    //TODO: I don't think this needs to be different, but it can be changed if needed
+    assign pdm_lrsel_o = 1'b0;
 
     //Shift register counter and value
     logic [15:0] shift_register;
