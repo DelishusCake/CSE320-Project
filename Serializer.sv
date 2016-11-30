@@ -31,7 +31,7 @@ module Serializer #(
                 index <= (WORD_LENGTH-1);
             end else begin
                 //decrement the index
-                index = index + 1;
+                index = index - 1;
             end 
         end else begin
             index <= (WORD_LENGTH-1);

@@ -10,7 +10,7 @@ typedef enum
 
 module Controller(
     input logic clock_i,                //100 Mhz Clock input
-    input logic reset_i                 //Reset signal
+    input logic reset_i,                 //Reset signal
     input logic play_command_i,         //The play command from the user (SYNCHRONIZED)
     input logic record_command_i,        //The record command from the user (SYNCHRONIZED)
     input logic play_clip_select_i,     //The clip selection from the user (SYNCHRONIZED)
@@ -33,7 +33,7 @@ module Controller(
     output logic deserializer_enable_o, //Enable for the deserializer
 
     //Memory I/O
-    output logic [WORD_LENGTH-1:0] memory_addr_o,   //Address for the memory banks
+    output logic [15:0] memory_addr_o,   //Address for the memory banks
     output logic memory_rw_o,                       //The read/write switch for memory
     output logic memory_0_enable_o,                 //Enable for memory bank 0
     output logic memory_1_enable_o                  //Enable for memory bank 1
@@ -74,14 +74,16 @@ module Controller(
     always_comb begin
         case (state)
             CONTROLLER_STATE_RESET:
+            begin
                 //reset all state and components
-                current_clip <= 1'b0;
-                timer_enable_o <= 1'b0;
-                serializer_enable_o <= 1'b0;
-                deserializer_enable_o <= 1'b0;
-                address_counter_enable <= 1'b0;
+                current_clip <= 0;
+                timer_enable_o <= 0;
+                serializer_enable_o <= 0;
+                deserializer_enable_o <= 0;
+                address_counter_enable <= 0;
 
                 next_state <= CONTROLLER_STATE_IDLE;
+            end
             CONTROLLER_STATE_IDLE:
             begin
                 if (play_command_i) 

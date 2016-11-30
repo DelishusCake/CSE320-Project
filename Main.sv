@@ -2,9 +2,9 @@
 
 module Main (
     input logic clock_i,                //100 Mhz Clock input
-    input logic reset_i                 //Reset signal
+    input logic reset_i,                 //Reset signal
     input logic play_i,                 //The play command from the user
-    input logic record_i                //The record command from the user
+    input logic record_i,                //The record command from the user
     input logic play_clip_select_i,     //The clip selection from the user
     input logic record_clip_select_i,   //The clip selection from the user
 
@@ -12,7 +12,7 @@ module Main (
     //PWM Microphone related signals
     output logic pdm_clk_o,
     input logic pdm_data_i,
-    output logic pdm_lrsel_o
+    output logic pdm_lrsel_o,
     //PWM Speaker signals
     output logic pwm_audio_o
 );
@@ -51,7 +51,7 @@ module Main (
     logic deserializer_enable;
     logic deserializer_done;
     logic [15:0] deserializer_data;
-    Deserializer deserializer
+    Deserializer deserializer(
         clock_i,
         deserializer_enable,
         deserializer_done,
@@ -62,7 +62,7 @@ module Main (
 
     Controller controller(
         clock_i(clock_i),                //100 Mhz Clock input
-        reset_i(reset_i)                 //Reset signal
+        reset_i(reset_i),                 //Reset signal
         play_command_i(play_command),         //The play command from the user (SYNCHRONIZED)
         record_command_i(record_command),        //The record command from the user (SYNCHRONIZED)
         play_clip_select_i(play_clip_selection),     //The clip selection from the user (SYNCHRONIZED)

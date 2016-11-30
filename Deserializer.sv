@@ -28,22 +28,29 @@ module Deserializer #(
     logic [7:0] shift_index;
 
     always_ff @(posedge clock_i) begin
+        //Reset done signal after completion
         if (done_o)
-            done_o = 1'b0; //reset the done signal
-        if (enable_i) begin
-            //Shift the shift register forward
-            shift_index = shift_index + 1;
-            if (shift_index == 16) begin
-                //Raise the done signal if we have sampled 16 values
-                done_o <= 1'b1;
-            end else begin
-                //insert the sampled value at the current index
-                data_o[shift_index] = pdm_data_i;
-            end
-        end else begin
+            done_o = 0;
+        if (~enable_i) begin
             //reset
             done_o <= 1'b0;
-            shift_index <= 8'b0;
+            shift_index <= (WORD_LENGTH-1);
         end
+    end
+    
+    //All insertion logic happens on the microphone clock signal
+    always_ff @(posedge pdm_clk_o) begin
+        if(enable_i) begin
+            //insert the sampled value at the current index
+            data_o[shift_index] = pdm_data_i;
+            if (shift_index == 0) begin
+                //Raise the done signal if we have sampled 16 values
+                done_o <= 1'b1;
+                shift_index <= (WORD_LENGTH-1);
+            end else begin
+                //Shift the shift register forward
+                shift_index <= shift_index - 1;
+            end
+        end 
     end
 endmodule
