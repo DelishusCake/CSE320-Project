@@ -3,12 +3,10 @@
 /*
  * Simple counter for counting addresses.
  */
-module Counter #(
-    parameter WORD_LENGTH = 16)
-(
+module Counter(
     input logic clock_i,
     input logic enable_i,
-    output logic [WORD_LENGTH-1:0] value_o
+    output logic [16:0] value_o
 );
     always_ff @(posedge clock_i) begin
         if (enable_i) begin

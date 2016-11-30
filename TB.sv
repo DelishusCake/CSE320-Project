@@ -4,29 +4,62 @@
 Testbed module
 */
 module TB;
-    logic clock;
-    logic enable;
-    logic done;
-    logic [15:0] data;
-    logic audio_out;
+    logic clock_i;                //100 Mhz Clock input
+    //User Input
+    logic reset_i;                 //Reset signal
+    logic play_i;                 //The play command from the user
+    logic record_i;                //The record command from the user
+    logic play_clip_select_i;     //The clip selection from the user
+    logic record_clip_select_i;   //The clip selection from the user
     
-    logic pdm_clk;
-    logic pdm_data;
-    logic pdm_lr;
+    //LED outputs
+    logic [6:0] cathode_play_o;
+    logic [6:0] cathode_record_o;
     
-    Deserializer #(16, 10, 1) deserializer(clock, enable, done, data, pdm_clk, pdm_data, pdm_lr);
+    //Audio I/O
+    //PWM Microphone related signals
+    logic pdm_clk_o;
+    logic pdm_data_i;
+    logic pdm_lrsel_o;
+    //PWM Speaker signals
+    logic pwm_audio_o;
+    logic pwm_sdaudio_o;
+    Main main(
+        clock_i,                //100 Mhz Clock input
+        //User Input
+        reset_i,                 //Reset signal
+        play_i,                 //The play command from the user
+        record_i,                //The record command from the user
+        play_clip_select_i,     //The clip selection from the user
+        record_clip_select_i,   //The clip selection from the user
+        
+        //LED outputs
+        cathode_play_o,
+        cathode_record_o,
+        
+        //Audio I/O
+        //PWM Microphone related signals
+        pdm_clk_o,
+        pdm_data_i,
+        pdm_lrsel_o,
+        //PWM Speaker signals
+        pwm_audio_o,
+        pwm_sdaudio_o);
 
     initial begin
-        clock = 0;
-        enable = 0;
-        pdm_data = 0;
-    #10 enable = 1;
-    #100 pdm_data = 1;
-    #100 pdm_data = 1;
-    #100 pdm_data = 0;
+        clock_i = 0;
+        reset_i = 0;
+        play_i = 0;
+        record_i = 0;
+        play_clip_select_i = 0;
+        record_clip_select_i = 0;
+    #20 reset_i = 1;
+    #20 reset_i = 0;
+    #20 play_i = 1;
+    #21 play_i = 0;
     end
 
     always begin
-    #5  clock = ~clock;
+    #5  clock_i = ~clock_i;
     end
 endmodule

@@ -19,7 +19,10 @@ module Deserializer #(
     
     //Clock frequency divider for the microphone
     FrequencyDivider #(WORD_LENGTH,SYSTEM_FREQUENCY,SAMPLING_FREQUENCY) pdm_divider(clock_i, enable_i, pdm_clk_o);
-
+    
+    logic rising_edge;
+    EdgeDetector edge_detector(clock_i, enable_i, pdm_clk_o, rising_edge);
+    
     //tie the right/left select to low (left)
     //TODO: I don't think this needs to be different, but it can be changed if needed
     assign pdm_lrsel_o = 1'b0;
@@ -28,29 +31,24 @@ module Deserializer #(
     logic [7:0] shift_index;
 
     always_ff @(posedge clock_i) begin
-        //Reset done signal after completion
         if (done_o)
-            done_o = 0;
-        if (~enable_i) begin
+            done_o = 1'b0;
+        if (enable_i) begin
+            if(rising_edge) begin
+                //insert the sampled value at the current index
+                data_o[shift_index] <= pdm_data_i;
+                if (shift_index == 0) begin
+                    //Raise the done signal if we have sampled 16 values
+                    done_o <= 1'b1;
+                    shift_index <= (WORD_LENGTH-1);
+                end else begin
+                    shift_index <= shift_index - 1;
+                end
+            end
+        end else begin
             //reset
             done_o <= 1'b0;
             shift_index <= (WORD_LENGTH-1);
         end
-    end
-    
-    //All insertion logic happens on the microphone clock signal
-    always_ff @(posedge pdm_clk_o) begin
-        if(enable_i) begin
-            //insert the sampled value at the current index
-            data_o[shift_index] = pdm_data_i;
-            if (shift_index == 0) begin
-                //Raise the done signal if we have sampled 16 values
-                done_o <= 1'b1;
-                shift_index <= (WORD_LENGTH-1);
-            end else begin
-                //Shift the shift register forward
-                shift_index <= shift_index - 1;
-            end
-        end 
     end
 endmodule

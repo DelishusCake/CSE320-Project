@@ -17,8 +17,8 @@ module Controller(
     input logic record_clip_select_i,   //The clip selection from the user (SYNCHRONIZED)
     
     //LED I/O
-    output logic [1:0] play_clip_o,     //The play clip number for the LED display
-    output logic [1:0] record_clip_o,   //The record clip number for the LED display
+    output logic [3:0] play_clip_o,     //The play clip number for the LED display
+    output logic [3:0] record_clip_o,   //The record clip number for the LED display
 
     //Timer I/O
     input logic timer_done_i,       //Done signal for the timer

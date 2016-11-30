@@ -14,7 +14,6 @@ module FrequencyDivider #(
     );
 
     //Calculate the cycle count needed 
-    parameter COUNT = (FREQUENCY_IN/(2*FREQUENCY_OUT));
 
     logic [WORD_LENGTH-1:0] counter;
 
@@ -22,7 +21,7 @@ module FrequencyDivider #(
         if (enable_i) begin
             //increment the count
             counter <= counter + 1;
-            if (counter == COUNT) begin
+            if (counter == (FREQUENCY_IN/(2*FREQUENCY_OUT))) begin
                 //reset the counter if we've reached the amount needed
                 counter <= 0;
                 //flip the output clock

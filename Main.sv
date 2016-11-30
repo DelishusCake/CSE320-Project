@@ -2,21 +2,28 @@
 
 module Main (
     input logic clock_i,                //100 Mhz Clock input
+    //User Input
     input logic reset_i,                 //Reset signal
     input logic play_i,                 //The play command from the user
     input logic record_i,                //The record command from the user
     input logic play_clip_select_i,     //The clip selection from the user
     input logic record_clip_select_i,   //The clip selection from the user
-
+    
+    //LED outputs
+    output logic [6:0] cathode_play_o,
+    output logic [6:0] cathode_record_o,
+    
     //Audio I/O
     //PWM Microphone related signals
     output logic pdm_clk_o,
     input logic pdm_data_i,
     output logic pdm_lrsel_o,
     //PWM Speaker signals
-    output logic pwm_audio_o
+    output logic pwm_audio_o,
+    output logic pwm_sdaudio_o
 );
-
+    assign pwm_sdaudio_o = 1'b1;  
+    
     /*
     Synchronizers: De-bounces asynchronous inputs into synchronous inputs
     */
@@ -32,9 +39,9 @@ module Main (
     Synchronizer record_clip_selection_sync(clock_i, reset_i, record_clip_select_i, record_clip_selection);
 
     //LED
-    logic [1:0] play_clip_value;
-    logic [1:0] record_clip_value;
-    //TODO: LED DRIVER GOES HERE
+    logic [3:0] play_clip_value;
+    logic [3:0] record_clip_value;
+    //TODO: LED DRIVERS GO HERE
 
     //Timer
     logic timer_enable;
@@ -89,6 +96,7 @@ module Main (
     //Enable memory bank 1 if the current bank is ` and the serializer or deserializer is done
     assign memory_block_1_enable = (memory_current_bank && (serializer_done || deserializer_done));
     
+    //Memory block 1
     blk_mem_gen_0 memory_block_1 (
       .clka(clock_i),    // input wire clka
       .ena(memory_block_1_enable),      // input wire ena

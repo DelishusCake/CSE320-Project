@@ -12,7 +12,7 @@ module Timer #(
     logic [15:0] counter;
     always_ff @(posedge clock_i) begin
         if (done_o)
-            done_0 <= 0;
+            done_o <= 0;
         if (enable_i) begin
             counter = counter + 1;
             if (counter == SYSTEM_FREQUENCY) begin
