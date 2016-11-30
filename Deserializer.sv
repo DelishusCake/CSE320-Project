@@ -1,36 +1,5 @@
 `timescale 1ns / 1ps
 
-/*
- * Divides one input clock frequency into another with a 50% duty cycle
- */
-module ClockDivider #(
-    parameter WORD_LENGTH = 16,
-    parameter FREQUENCY_IN = 100000000,
-    parameter FREQUENCY_OUT = 1000000)
-    (
-        input logic clock_i,
-        input logic enable_i,
-        output logic clock_o
-    );
-
-    parameter COUNT = (FREQUENCY_IN/(2*FREQUENCY_OUT));
-
-    logic [WORD_LENGTH-1:0] counter;
-
-    always_ff @(posedge clock_i) begin
-        if (enable_i) begin
-            counter <= counter + 1;
-            if (counter == COUNT) begin
-                counter <= 0;
-                clock_o <= ~clock_o;
-            end
-        end else begin
-            counter <= 1'b0;
-            clock_o <= 1'b0;
-        end
-    end
-endmodule
-
 module Deserializer #(
     parameter WORD_LENGTH = 16,
     parameter SYSTEM_FREQUENCY = 100000000,
@@ -49,7 +18,7 @@ module Deserializer #(
     );
     
     //Clock frequency divider for the microphone
-    ClockDivider #(WORD_LENGTH,SYSTEM_FREQUENCY,SAMPLING_FREQUENCY) pdm_divider(clock_i, enable_i, pdm_clk_o);
+    FrequencyDivider #(WORD_LENGTH,SYSTEM_FREQUENCY,SAMPLING_FREQUENCY) pdm_divider(clock_i, enable_i, pdm_clk_o);
 
     //tie the right/left select to low (left)
     //TODO: I don't think this needs to be different, but it can be changed if needed
