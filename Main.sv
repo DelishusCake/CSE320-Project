@@ -61,10 +61,18 @@ module Main (
         pdm_lrsel_o);
         
     //Memory
-    logic [15:0] memory_address;
+    logic [16:0] memory_address;
+    logic memory_current_bank;  //The current memory bank for the action
+    logic memory_rw;            //Will be 0 for read, 1 for write
     
-    logic memory_block_0_wea;
-    logic memory_block_0_enable;
+    logic memory_block_0_wea;   //Bank 0 write enable
+    logic memory_block_0_enable;//Bank 0 enable
+    //Enable writing if the current bank is 0 and we need to write
+    assign memory_block_0_wea = (!memory_current_bank && memory_rw);
+    //Enable memory bank 0 if the current bank is 0 and the serializer or deserializer is done
+    assign memory_block_0_enable = (!memory_current_bank && (serializer_done || deserializer_done));
+    
+    //Memory bank 0
     blk_mem_gen_0 memory_block_0 (
       .clka(clock_i),    // input wire clka
       .ena(memory_block_0_enable),      // input wire ena
@@ -76,6 +84,11 @@ module Main (
     
     logic memory_block_1_wea;
     logic memory_block_1_enable;
+    //Enable writing if the current bank is 1 and we need to write
+    assign memory_block_1_wea = (memory_current_bank && memory_rw);
+    //Enable memory bank 1 if the current bank is ` and the serializer or deserializer is done
+    assign memory_block_1_enable = (memory_current_bank && (serializer_done || deserializer_done));
+    
     blk_mem_gen_0 memory_block_1 (
       .clka(clock_i),    // input wire clka
       .ena(memory_block_1_enable),      // input wire ena
@@ -86,32 +99,32 @@ module Main (
     );
 
     Controller controller(
-        clock_i(clock_i),                //100 Mhz Clock input
-        reset_i(reset_i),                 //Reset signal
-        play_command_i(play_command),         //The play command from the user (SYNCHRONIZED)
-        record_command_i(record_command),        //The record command from the user (SYNCHRONIZED)
-        play_clip_select_i(play_clip_selection),     //The clip selection from the user (SYNCHRONIZED)
-        record_clip_select_i(record_clip_selection),   //The clip selection from the user (SYNCHRONIZED)
+        .clock_i(clock_i),                //100 Mhz Clock input
+        .reset_i(reset_i),                 //Reset signal
+        .play_command_i(play_command),         //The play command from the user (SYNCHRONIZED)
+        .record_command_i(record_command),        //The record command from the user (SYNCHRONIZED)
+        .play_clip_select_i(play_clip_selection),     //The clip selection from the user (SYNCHRONIZED)
+        .record_clip_select_i(record_clip_selection),   //The clip selection from the user (SYNCHRONIZED)
         
         //LED I/O
-        play_clip_o(play_clip_value),     //The play clip number for the LED display
-        record_clip_o(record_clip_value),   //The record clip number for the LED display
+        .play_clip_o(play_clip_value),     //The play clip number for the LED display
+        .record_clip_o(record_clip_value),   //The record clip number for the LED display
 
         //Timer I/O
-        timer_done_i(timer_done),       //Done signal for the timer
-        timer_enable_o(timer_enable),    //Enable for the timer
+        .timer_done_i(timer_done),       //Done signal for the timer
+        .timer_enable_o(timer_enable),    //Enable for the timer
 
         //Serializer I/O
-        serializer_done_i(serializer_done),      //Done signal for the serializer
-        serializer_enable_o(serializer_enable),   //Enable for the serializer
+        .serializer_done_i(serializer_done),      //Done signal for the serializer
+        .serializer_enable_o(serializer_enable),   //Enable for the serializer
 
         //Deserializer I/O
-        deserializer_done_i(deserializer_done),    //Done signal for the deserializer
-        deserializer_enable_o(deserializer_enable), //Enable for the deserializer
+        .deserializer_done_i(deserializer_done),    //Done signal for the deserializer
+        .deserializer_enable_o(deserializer_enable), //Enable for the deserializer
 
         //Memory I/O
-        output logic [16:0] memory_addr_o,   //Address for the memory banks
-        output logic memory_rw_o,                       //The read/write switch for memory
-        output logic memory_current_bank_o
+        .memory_addr_o(memory_address),   //Address for the memory banks
+        .memory_rw_o(memory_rw),                       //The read/write switch for memory
+        .memory_current_bank_o(memory_current_bank)
         );
 endmodule
