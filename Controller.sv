@@ -33,10 +33,9 @@ module Controller(
     output logic deserializer_enable_o, //Enable for the deserializer
 
     //Memory I/O
-    output logic [15:0] memory_addr_o,   //Address for the memory banks
-    output logic memory_rw_o,                       //The read/write switch for memory
-    output logic memory_0_enable_o,                 //Enable for memory bank 0
-    output logic memory_1_enable_o                  //Enable for memory bank 1
+    output logic [16:0] memory_addr_o,   //Address for the memory banks
+    output logic memory_rw_o,            //The read/write switch for memory
+    output logic memory_current_bank_o    //The current memory bank in use
     );
 
     //LED ouput logic
@@ -58,6 +57,7 @@ module Controller(
     This should be set based on the user's selection via a switch
     */
     logic current_clip;
+    assign memory_current_bank_o = current_clip;
 
     //State swap
     always_ff @(posedge clock_i or negedge reset_i) begin
@@ -108,17 +108,6 @@ module Controller(
                 //Enable the deserializer
                 deserializer_enable_o <= 1'b1;
 
-                //Test the clip selection
-                if (current_clip) begin
-                    //Clip 2 is selected for playing
-                    memory_0_enable_o <= 1'b0;
-                    memory_1_enable_o <= 1'b1;
-                end else begin
-                    //Clip 1 is selected for playing
-                    memory_0_enable_o <= 1'b1;
-                    memory_1_enable_o <= 1'b0;
-                end
-
                 //If the timer says we're done, go back to the reset state
                 if (timer_done_i) begin
                     next_state <= CONTROLLER_STATE_RESET;
@@ -134,17 +123,6 @@ module Controller(
                 timer_enable_o <= 1'b1;
                 //Enable the serializer
                 serializer_enable_o <= 1'b1;
-
-                //Test the clip selection
-                if (current_clip) begin
-                    //Clip 2 is selected for recording
-                    memory_0_enable_o <= 1'b0;
-                    memory_1_enable_o <= 1'b1;
-                end else begin
-                    //Clip 1 is selected for recording
-                    memory_0_enable_o <= 1'b1;
-                    memory_1_enable_o <= 1'b0;
-                end
 
                 //If the timer says we're done, go back to the reset state
                 if (timer_done_i) begin

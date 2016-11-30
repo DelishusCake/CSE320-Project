@@ -59,6 +59,31 @@ module Main (
         pdm_clk_o,
         pdm_data_i,
         pdm_lrsel_o);
+        
+    //Memory
+    logic [15:0] memory_address;
+    
+    logic memory_block_0_wea;
+    logic memory_block_0_enable;
+    blk_mem_gen_0 memory_block_0 (
+      .clka(clock_i),    // input wire clka
+      .ena(memory_block_0_enable),      // input wire ena
+      .wea(memory_block_0_wea),      // input wire [0 : 0] wea
+      .addra(memory_address),  // input wire [16 : 0] addra
+      .dina(serializer_data),    // input wire [15 : 0] dina
+      .douta(deserializer_data)  // output wire [15 : 0] douta
+    );
+    
+    logic memory_block_1_wea;
+    logic memory_block_1_enable;
+    blk_mem_gen_0 memory_block_1 (
+      .clka(clock_i),    // input wire clka
+      .ena(memory_block_1_enable),      // input wire ena
+      .wea(memory_block_1_wea),      // input wire [0 : 0] wea
+      .addra(memory_address),  // input wire [16 : 0] addra
+      .dina(serializer_data),    // input wire [15 : 0] dina
+      .douta(deserializer_data)  // output wire [15 : 0] douta
+    );
 
     Controller controller(
         clock_i(clock_i),                //100 Mhz Clock input
@@ -85,9 +110,8 @@ module Main (
         deserializer_enable_o(deserializer_enable), //Enable for the deserializer
 
         //Memory I/O
-        output logic [WORD_LENGTH-1:0] memory_addr_o,   //Address for the memory banks
+        output logic [16:0] memory_addr_o,   //Address for the memory banks
         output logic memory_rw_o,                       //The read/write switch for memory
-        output logic memory_0_enable_o,                 //Enable for memory bank 0
-        output logic memory_1_enable_o                  //Enable for memory bank 1
+        output logic memory_current_bank_o
         );
 endmodule
