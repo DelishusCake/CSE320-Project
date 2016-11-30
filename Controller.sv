@@ -9,11 +9,12 @@ typedef enum
 } controller_state_t;
 
 module Controller(
-    input logic clock_i,            //100 Mhz Clock input
-    input logic reset_i             //Reset signal
-    input logic clip_select_i,      //The clip selection from the user (asynchronous switch)
-    input logic play_i,             //The play command from the user (asynchronous button)
-    input logic record_i,           //The record command from the user (asynchronous button)
+    input logic clock_i,                //100 Mhz Clock input
+    input logic reset_i                 //Reset signal
+    input logic play_command_i,         //The play command from the user (SYNCHRONIZED)
+    input logic record_command_i,        //The record command from the user (SYNCHRONIZED)
+    input logic play_clip_select_i,     //The clip selection from the user (SYNCHRONIZED)
+    input logic record_clip_select_i,   //The clip selection from the user (SYNCHRONIZED)
     
     //LED I/O
     output logic [1:0] play_clip_o,     //The play clip number for the LED display
@@ -38,24 +39,9 @@ module Controller(
     output logic memory_1_enable_o                  //Enable for memory bank 1
     );
 
-    /*
-    Synchronizers: De-bounces asynchronous inputs into synchronous inputs
-    TODO: Should these be moved to the main file?
-    */
-    //Synchronous inputs
-    logic play_command;
-    logic record_command;
-    logic play_clip_selection;
-    logic record_clip_selection;
-    //Synchronizer modules
-    Synchronizer play_command_sync(clock_i, reset_i, play_i, play_command);
-    Synchronizer record_command_sync(clock_i, reset_i, record_i, record_command);
-    Synchronizer play_clip_selection_sync(clock_i, reset_i, clip_select_i, play_clip_selection);
-    Synchronizer record_clip_selection_sync(clock_i, reset_i, clip_select_i, record_clip_selection);
-
     //LED ouput logic
-    assign play_clip_o = play_clip_selection + 1'b1;
-    assign record_clip_o = record_clip_selection + 1'b1;
+    assign play_clip_o = play_clip_select_i + 1'b1;
+    assign record_clip_o = record_clip_select_i + 1'b1;
 
     //Counter for the address
     logic address_counter_enable;
@@ -98,14 +84,14 @@ module Controller(
                 next_state <= CONTROLLER_STATE_IDLE;
             CONTROLLER_STATE_IDLE:
             begin
-                if (play_command) 
+                if (play_command_i) 
                 begin
                     //Sample the clip 
-                    current_clip <= play_clip_selection;
+                    current_clip <= play_clip_select_i;
                     //Set the state
                     next_state <= CONTROLLER_STATE_PLAYING;
-                end else if(record_command) begin
-                    current_clip <= record_clip_selection;
+                end else if(record_command_i) begin
+                    current_clip <= record_clip_select_i;
                     next_state <= CONTROLLER_STATE_RECORDING;
                 end
             end
