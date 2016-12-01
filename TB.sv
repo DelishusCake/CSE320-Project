@@ -23,7 +23,7 @@ module TB #(
     logic pwm_audio_o;
     logic pwm_sdaudio_o;
     
-    /*logic play_command_i;
+    logic play_command_i;
     logic record_command_i;
     logic play_clip_i;
     logic record_clip_i;
@@ -57,7 +57,7 @@ module TB #(
     assign timer_tick_i = (serializer_done_i | deserializer_done_i);
     assign serializer_data_o = (memory_0_enable_o ? memory_0_data : (memory_1_enable_o ? memory_1_data : 0));
     
-    LED led(
+    LED #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) led (
         .clock_i(clock_i),
         .reset_i(reset_i),
         .play_clip_i(play_clip_o),
@@ -161,8 +161,8 @@ module TB #(
         .memory_rw_o(memory_rw_o),
         .memory_0_enable_o(memory_0_enable_o),
         .memory_1_enable_o(memory_1_enable_o)
-    );*/
-    Main #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) main(
+    );
+    /*Main #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) main(
         .clock_i(clock_i),
         .reset_i(reset_i),
         .play_i(play_i),
@@ -178,7 +178,7 @@ module TB #(
         .pdm_lrsel_o(pdm_lrsel_o),
         .pwm_audio_o(pwm_audio_o),
         .pwm_sdaudio_o(pwm_sdaudio_o)
-    );
+    );*/
     
     initial begin
         clock_i = 0;
@@ -189,6 +189,7 @@ module TB #(
         play_i = 0;
         record_i = 0;
     #10 reset_i = 0;
+    #10 play_clip_select_i = 1;
     #10 play_i = 1;
     #10 play_i = 0;
     end

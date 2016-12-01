@@ -63,7 +63,7 @@ module Main #(
     assign timer_tick_i = (serializer_done_i | deserializer_done_i);
     assign serializer_data_o = (memory_0_enable_o ? memory_0_data : (memory_1_enable_o ? memory_1_data : 0));
     
-    LED led(
+    LED #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) led (
         .clock_i(clock_i),
         .reset_i(reset_i),
         .play_clip_i(play_clip_o),
