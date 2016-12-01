@@ -12,7 +12,7 @@ module LED #(
 	output logic [7:0] anode_o,
 	output logic [6:0] cathode_o
 );
-    `LED_FREQUENCY 1000;
+    `define LED_FREQUENCY 1000;
     
 	logic scaled_clock;
     logic [31:0] clock_counter;
