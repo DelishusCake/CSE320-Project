@@ -8,54 +8,48 @@ module LED (
 	output logic [7:0] anode_o,
 	output logic [6:0] cathode_o
 );
-	logic [6:0] play_clip_anode;
-	logic [6:0] record_clip_anode;
-
 	logic display_clock;
 
-	always_ff @(posedge clock_i or negedge reset_i)
+	always_ff @(posedge clock_i) begin
 		if(~reset_i) begin
-			case (play_clip_i)
-				0: play_clip_anode <= 8'b00000001;
-				1: play_clip_anode <= 8'b01001111;
-				2: play_clip_anode <= 8'b00010010;
-				3: play_clip_anode <= 8'b00000110;
-				4: play_clip_anode <= 8'b01001100;
-				5: play_clip_anode <= 8'b00000000;
-				6: play_clip_anode <= 8'b00000000;
-				7: play_clip_anode <= 8'b00000000;
-				8: play_clip_anode <= 8'b00000000;
-				9: play_clip_anode <= 8'b00000000;
-				default:
-					play_clip_anode <= 8'b11111111;
-			endcase
-
-			case (record_clip_i)
-				0: record_clip_anode <= 8'b10000001;
-				1: record_clip_anode <= 8'b11001111;
-				2: record_clip_anode <= 8'b10010010;
-				3: record_clip_anode <= 8'b10000110;
-				4: record_clip_anode <= 8'b11001100;
-				5: record_clip_anode <= 8'b10000000;
-				6: record_clip_anode <= 8'b10000000;
-				7: record_clip_anode <= 8'b10000000;
-				8: record_clip_anode <= 8'b10000000;
-				9: record_clip_anode <= 8'b10000000;
-				default:
-					record_clip_anode <= 8'b1111111;
-			endcase
-
-			if(display_clock) begin
-				cathode_o <= 7'b00000010;
-				anode_o <= play_clip_anode;
-			end else begin 
-				cathode_o <= 7'b00000001;
-				anode_o <= record_clip_anode;
+            display_clock <= ~display_clock;
+            if(display_clock) begin
+                anode_o <= 8'b11111110;
+                case (play_clip_i)
+                    0: cathode_o <= 7'b1000000;
+                    1: cathode_o <= 7'b1111001;
+                    2: cathode_o <= 7'b0100100;
+                    3: cathode_o <= 7'b0000000;
+                    4: cathode_o <= 7'b0000000;
+                    5: cathode_o <= 7'b0000000;
+                    6: cathode_o <= 7'b0000000;
+                    7: cathode_o <= 7'b0000000;
+                    8: cathode_o <= 7'b0000000;
+                    9: cathode_o <= 7'b0000000;
+                    default:
+                        cathode_o<= 7'b1111111;
+                endcase
+            end else begin
+				anode_o <= 8'b11111101;
+				case (record_clip_i)
+                    0: cathode_o <= 7'b1000000;
+                    1: cathode_o <= 7'b1111001;
+                    2: cathode_o <= 7'b0100100;
+                    3: cathode_o <= 7'b0000000;
+                    4: cathode_o <= 7'b0000000;
+                    5: cathode_o <= 7'b0000000;
+                    6: cathode_o <= 7'b0000000;
+                    7: cathode_o <= 7'b0000000;
+                    8: cathode_o <= 7'b0000000;
+                    9: cathode_o <= 7'b0000000;
+                    default:
+                        cathode_o<= 7'b1111111;
+                endcase
 			end
 		end else begin
-			play_clip_anode <= 7'b0;
-			record_clip_anode <= 7'b0;
+	        anode_o <= 0;
+		    cathode_o <= 0;
+			display_clock <= 1'b0;
 		end
-		display_clock <= ~display_clock;
 	end
 endmodule

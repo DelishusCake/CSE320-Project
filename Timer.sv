@@ -10,15 +10,12 @@ module Timer #(
     input logic tick_i,
     output logic done_o
 );
-    logic [WORD_LENGTH-1:0] counter;
+    logic [31:0] counter;
     always_ff @(posedge clock_i) begin
-        if (done_o)
-            done_o <= 0;
-        if (enable_i) begin
+        if (enable_i & ~done_o) begin
             if (tick_i) begin
                 counter = counter + 1;
                 if (counter == (2*62500)) begin
-                    counter <= 0;
                     done_o <= 1'b1;
                 end
             end

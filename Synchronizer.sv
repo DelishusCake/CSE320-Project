@@ -15,8 +15,8 @@ module Synchronizer(
             value_o <= 1'b0;
         end else begin
             //Swap the two values (double flip-flop)
-            buffer <= value_i;
-            value_o <= buffer;
+            value_o = buffer;
+            buffer = value_i;
         end 
     end
 endmodule

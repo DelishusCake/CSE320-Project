@@ -22,8 +22,6 @@ module Serializer #(
     logic [7:0] shift_index;
 
     always_ff @(posedge clock_i) begin
-        if (done_o)
-            done_o <= 0;
         if (enable_i & ~done_o) begin
             clock_counter = clock_counter + 1;
             if(clock_counter == ((SYSTEM_FREQUENCY/SAMPLING_FREQUENCY)/2)) begin
@@ -35,21 +33,21 @@ module Serializer #(
                 pwm_audio_o = Data_i[shift_index];
                 if (shift_index == 0) begin
                     //Raise the done signal if we have sampled 16 values
-                    done_o <= 1;
-                    shift_index <= (WORD_LENGTH-1);
+                    done_o = 1;
+                    shift_index = (WORD_LENGTH-1);
                 end else begin
                     shift_index = shift_index - 1;
                 end
             end
-            scaled_clock = scaled_clock_last;
+            scaled_clock_last = scaled_clock;
        end else begin
-           done_o <= 0;
+           done_o = 0;
            
-           shift_index <= (WORD_LENGTH-1);
+           shift_index = (WORD_LENGTH-1);
            
-           scaled_clock <= 0;
-           scaled_clock_last <= 0;
-           clock_counter <= 0;
+           scaled_clock = 0;
+           scaled_clock_last = 0;
+           clock_counter = 0;
        end
     end
 endmodule

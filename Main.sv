@@ -17,6 +17,9 @@ module Main #(
     output logic [6:0] cathode_o,
     output logic [7:0] anode_o,
     
+    output logic recording_o,
+    output logic playing_o,
+    
     //Audio I/O
     //PWM Microphone related signals
     output logic pdm_clk_o,
@@ -26,143 +29,143 @@ module Main #(
     output logic pwm_audio_o,
     output logic pwm_sdaudio_o
 );
-    assign pwm_sdaudio_o = 1'b1;  
+    logic play_command_i;
+    logic record_command_i;
+    logic play_clip_i;
+    logic record_clip_i;
     
-    /*
-    Synchronizers: De-bounces asynchronous inputs into synchronous inputs
-    */
-    //Synchronous inputs
-    logic play_command;
-    logic record_command;
-    logic play_clip_selection;
-    logic record_clip_selection;
-    //Synchronizer modules
-    Synchronizer play_command_sync(clock_i, reset_i, play_i, play_command);
-    Synchronizer record_command_sync(clock_i, reset_i, record_i, record_command);
-    Synchronizer play_clip_selection_sync(clock_i, reset_i, play_clip_select_i, play_clip_selection);
-    Synchronizer record_clip_selection_sync(clock_i, reset_i, record_clip_select_i, record_clip_selection);
+    logic [3:0] play_clip_o;
+    logic [3:0] record_clip_o;
     
-    //LED
-    logic [3:0] play_clip_value;
-    logic [3:0] record_clip_value;
+    logic timer_done_i;
+    logic timer_tick_i;
+    logic timer_enable_o;
+    
+    logic serializer_done_i;
+    logic serializer_enable_o;
+    
+    logic deserializer_done_i;
+    logic deserializer_enable_o;
+    
+    logic [15:0] serializer_data_o;
+    logic [15:0] deserializer_data_o;
+    
+    logic memory_rw_o;
+    logic [16:0] memory_address;
+    logic memory_0_enable_o;
+    logic memory_1_enable_o;
+    
+    logic [15:0] memory_0_data;
+    logic [15:0] memory_1_data;
+    
+    assign pdm_lrsel_o = 1'b1;
+    assign pwm_sdaudio_o = 1'b1;
+    assign timer_tick_i = (serializer_done_i | deserializer_done_i);
+    assign serializer_data_o = (memory_0_enable_o ? memory_0_data : (memory_1_enable_o ? memory_1_data : 0));
+    
     LED led(
         .clock_i(clock_i),
         .reset_i(reset_i),
-        .play_clip_i(play_clip_value),
-        .record_clip_i(record_clip_value),
+        .play_clip_i(play_clip_o),
+        .record_clip_i(record_clip_o),
         .anode_o(anode_o),
         .cathode_o(cathode_o)
     );
-
-    //Serializer
-    logic serializer_enable;
-    logic serializer_done;
-    logic [15:0] serializer_data;
-    Serializer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) serializer(clock_i, serializer_enable, serializer_done, serializer_data, pwm_audio_o);
-
-    //Deserializer
-    logic deserializer_enable;
-    logic deserializer_done;
-    logic [15:0] deserializer_data;
-    Deserializer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) deserializer(
-        clock_i,
-        deserializer_enable,
-        deserializer_done,
-        deserializer_data,
-        pdm_clk_o,
-        pdm_data_i,
-        pdm_lrsel_o);
-
-    //Timer
-    logic timer_enable;
-    logic timer_tick;
-    logic timer_done;
-    Timer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) timer(clock_i, timer_enable, timer_tick, timer_done);
     
-    assign timer_tick = timer_enable & (deserializer_done | serializer_done);
-
-    //Memory
-    logic [16:0] memory_address;
-    logic current_clip;
-    logic memory_rw;            //Will be 0 for read, 1 for write
-    
-    logic memory_block_0_enable;//Bank 0 enable
-    logic memory_block_1_enable;
-    
-    assign memory_block_0_enable = !current_clip;
-    assign memory_block_1_enable = current_clip;
-    
-    logic [15:0] memory_block_0_data;
-    logic [15:0] memory_block_1_data;
-    
-    always_ff @(posedge clock_i) begin
-        if (~reset_i) begin
-            //we are in the play state
-            if (serializer_enable) begin
-                serializer_data <= (current_clip ? memory_block_0_data : memory_block_1_data);
-                if (serializer_done) begin
-                    memory_address <= memory_address + 1;
-                end
-            //we are in the record state
-            end else if (deserializer_enable) begin
-                if(deserializer_done) begin
-                    memory_address <= memory_address + 1;
-                end
-            end else begin
-                serializer_data <= 0;
-                memory_address <= 0;
-            end
-        end else begin
-            memory_address = 0;
-        end
-    end
-    
-    //Memory bank 0
-    blk_mem_gen_0 memory_block_0 (
-      .clka(clock_i),    // input wire clka
-      .ena(memory_block_0_enable),      // input wire ena
-      .wea(memory_rw),      // input wire [0 : 0] wea
-      .addra(memory_address),  // input wire [16 : 0] addra
-      .dina(deserializer_data),    // input wire [15 : 0] dina
-      .douta(memory_block_0_data)  // output wire [15 : 0] douta
+    Synchronizer play_command_sync(
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .value_i(play_i),
+        .value_o(play_command_i)
+    );
+    Synchronizer record_command_sync(
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .value_i(record_i),
+        .value_o(record_command_i)
+    );
+    Synchronizer play_clip_selection_sync(
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .value_i(play_clip_select_i),
+        .value_o(play_clip_i)
+    );
+    Synchronizer record_clip_selection_sync(
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .value_i(record_clip_select_i),
+        .value_o(record_clip_i)
     );
     
-    //Memory block 1
+    Deserializer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) deserializer(
+        .clock_i(clock_i),
+        .enable_i(deserializer_enable_o), 
+        .done_o(deserializer_done_i),
+        .data_o(deserializer_data_o), 
+        .pdm_clk_o(pdm_clk_o),
+        .pdm_data_i(pdm_data_i)
+    );
+    
+    Serializer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) serializer(
+        .clock_i(clock_i),
+        .enable_i(serializer_enable_o), 
+        .done_o(serializer_done_i),
+        .Data_i(serializer_data_o), 
+        .pwm_audio_o(pwm_audio_o)
+    );
+    
+    Timer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) timer(
+        .clock_i(clock_i),
+        .enable_i(timer_enable_o),
+        .tick_i(timer_tick_i),
+        .done_o(timer_done_i)
+    );
+    
+    Counter #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) counter(
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .timer_done_i(timer_done_i),
+        .serializer_done_i(serializer_done_i),
+        .deserializer_done_i(deserializer_done_i),
+        .memory_address_o(memory_address)
+    );
+    
+    blk_mem_gen_0 memory_block_0 (
+      .clka(clock_i),    // input wire clka
+      .ena(memory_0_enable_o),      // input wire ena
+      .wea(memory_rw_o),      // input wire [0 : 0] wea
+      .addra(memory_address),  // input wire [16 : 0] addra
+      .dina(deserializer_data_o),    // input wire [15 : 0] dina
+      .douta(memory_0_data)  // output wire [15 : 0] douta
+    );    
     blk_mem_gen_0 memory_block_1 (
       .clka(clock_i),    // input wire clka
-      .ena(memory_block_1_enable),      // input wire ena
-      .wea(memory_rw),      // input wire [0 : 0] wea
+      .ena(memory_1_enable_o),      // input wire ena
+      .wea(memory_rw_o),      // input wire [0 : 0] wea
       .addra(memory_address),  // input wire [16 : 0] addra
-      .dina(deserializer_data),    // input wire [15 : 0] dina
-      .douta(memory_block_1_data)  // output wire [15 : 0] douta
+      .dina(deserializer_data_o),    // input wire [15 : 0] dina
+      .douta(memory_1_data)  // output wire [15 : 0] douta
     );
     
     Controller #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) controller(
-        .clock_i(clock_i),                //100 Mhz Clock input
-        .reset_i(reset_i),                 //Reset signal
-        .play_command_i(play_command),         //The play command from the user (SYNCHRONIZED)
-        .record_command_i(record_command),        //The record command from the user (SYNCHRONIZED)
-        .play_clip_select_i(play_clip_selection),     //The clip selection from the user (SYNCHRONIZED)
-        .record_clip_select_i(record_clip_selection),   //The clip selection from the user (SYNCHRONIZED)
-        
-        //LED I/O
-        .play_clip_o(play_clip_value),     //The play clip number for the LED display
-        .record_clip_o(record_clip_value),   //The record clip number for the LED display
-
-        //Timer I/O
-        .timer_done_i(timer_done),       //Done signal for the timer
-        .timer_enable_o(timer_enable),    //Enable for the timer
-
-        //Serializer I/O
-        .serializer_done_i(serializer_done),      //Done signal for the serializer
-        .serializer_enable_o(serializer_enable),   //Enable for the serializer
-
-        //Deserializer I/O
-        .deserializer_done_i(deserializer_done),    //Done signal for the deserializer
-        .deserializer_enable_o(deserializer_enable), //Enable for the deserializer
-
-        //Memory I/O
-        .memory_rw_o(memory_rw),                       //The read/write switch for memory
-        .current_clip_o(current_clip)
-        );
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .play_command_i(play_command_i),
+        .record_command_i(record_command_i),
+        .play_clip_select_i(play_clip_i),
+        .record_clip_select_i(record_clip_i),
+        .playing_o(playing_o),
+        .recording_o(recording_o),
+        .play_clip_o(play_clip_o),
+        .record_clip_o(record_clip_o),
+        .timer_done_i(timer_done_i),
+        .timer_enable_o(timer_enable_o),
+        .serializer_done_i(serializer_done_i),
+        .serializer_enable_o(serializer_enable_o),
+        .deserializer_done_i(deserializer_done_i),
+        .deserializer_enable_o(deserializer_enable_o),
+        .memory_rw_o(memory_rw_o),
+        .memory_0_enable_o(memory_0_enable_o),
+        .memory_1_enable_o(memory_1_enable_o)
+    );
 endmodule
