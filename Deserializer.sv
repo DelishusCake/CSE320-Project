@@ -9,7 +9,7 @@ module Deserializer #(
         input logic enable_i, // Enable passed by Controller(~reset)
         //output signals
         output logic done_o, //Indicates that Data is ready
-        output logic [15:0] data_o, //Output 16-bit Word
+        output logic [WORD_LENGTH-1:0] data_o, //Output 16-bit Word
     
         //PDM Microphone related signals
         output logic pdm_clk_o,
@@ -18,37 +18,48 @@ module Deserializer #(
     );
     
     //Clock frequency divider for the microphone
-    FrequencyDivider #(WORD_LENGTH,SYSTEM_FREQUENCY,SAMPLING_FREQUENCY) pdm_divider(clock_i, enable_i, pdm_clk_o);
-    
-    logic rising_edge;
-    EdgeDetector edge_detector(clock_i, enable_i, pdm_clk_o, rising_edge);
-    
-    //tie the right/left select to low (left)
-    //TODO: I don't think this needs to be different, but it can be changed if needed
+    logic scaled_clock;
+    logic scaled_clock_last;
+    logic [WORD_LENGTH-1:0] clock_counter;
+
+    assign pdm_clk_o = scaled_clock;
     assign pdm_lrsel_o = 1'b0;
 
     //Shift register index (0-16)
-    logic [7:0] shift_index;
+    logic [7:0] shift_count;
+    logic [15:0] shift_data;
 
     always_ff @(posedge clock_i) begin
         if (done_o)
-            done_o = 1'b0;
-        if (enable_i) begin
-            if(rising_edge) begin
+            done_o <= 0;
+        if (enable_i & ~done_o) begin
+            clock_counter = clock_counter + 1;
+            if(clock_counter == ((SYSTEM_FREQUENCY/SAMPLING_FREQUENCY)/2)) begin
+                scaled_clock = ~scaled_clock;
+                clock_counter = 0;
+            end
+            if (scaled_clock & ~scaled_clock_last) begin
                 //insert the sampled value at the current index
-                data_o[shift_index] <= pdm_data_i;
-                if (shift_index == 0) begin
+                shift_data[0] = pdm_data_i;
+                shift_data = shift_data <<< 1;
+                shift_count = shift_count + 1;
+                if (shift_count == 16) begin
                     //Raise the done signal if we have sampled 16 values
-                    done_o <= 1'b1;
-                    shift_index <= (WORD_LENGTH-1);
-                end else begin
-                    shift_index <= shift_index - 1;
+                    done_o <= 1;
+                    data_o <= shift_data;
+                    shift_count <= 0;
                 end
             end
-        end else begin
-            //reset
-            done_o <= 1'b0;
-            shift_index <= (WORD_LENGTH-1);
-        end
+            scaled_clock = scaled_clock_last;
+       end else begin
+           done_o <= 0;
+           
+           shift_count <= 0;
+           shift_data <= 0;
+           
+           scaled_clock <= 0;
+           scaled_clock_last <= 0;
+           clock_counter <= 0;
+       end
     end
 endmodule

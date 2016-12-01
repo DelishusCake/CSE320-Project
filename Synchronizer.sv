@@ -9,7 +9,7 @@ module Synchronizer(
     //Metastable buffer value
     logic buffer; 
     
-    always_ff @(posedge clock_i or posedge reset_i) begin
+    always_ff @(posedge clock_i or negedge reset_i) begin
         if (reset_i) begin
             buffer <= 1'b0;
             value_o <= 1'b0;

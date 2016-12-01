@@ -8,7 +8,11 @@ typedef enum
     CONTROLLER_STATE_RECORDING
 } controller_state_t;
 
-module Controller(
+module Controller #(
+    parameter WORD_LENGTH = 16,
+    parameter SYSTEM_FREQUENCY = 100000000,
+    parameter SAMPLING_FREQUENCY = 1000000)
+(
     input logic clock_i,                //100 Mhz Clock input
     input logic reset_i,                 //Reset signal
     input logic play_command_i,         //The play command from the user (SYNCHRONIZED)
@@ -33,32 +37,31 @@ module Controller(
     output logic deserializer_enable_o, //Enable for the deserializer
 
     //Memory I/O
-    output logic [16:0] memory_addr_o,   //Address for the memory banks
     output logic memory_rw_o,            //The read/write switch for memory
-    output logic memory_current_bank_o    //The current memory bank in use
+    output logic current_clip_o
     );
-
+    
+    logic play_command_last;
+    logic record_command_last;
+    
+    always_ff @(negedge clock_i or negedge reset_i) begin
+        if(reset_i) begin
+            play_command_last <= 0;
+            record_command_last <= 0;
+        end else begin
+            play_command_last <= play_command_i;
+            record_command_last <= record_command_i;
+        end
+    end
+    
     //LED ouput logic
     assign play_clip_o = play_clip_select_i + 1'b1;
     assign record_clip_o = record_clip_select_i + 1'b1;
 
-    //Counter for the address
-    logic address_counter_enable;
-    Counter address_counter(clock_i, address_counter_enable, memory_addr_o);
-
     //State variables
     controller_state_t state;       //the current state of the controller
     controller_state_t next_state;  //the state of the controller on the next clock tick
-
-    /*
-    The current clip selected for recording or playing
-        0: Clip 1
-        1: Clip 2
-    This should be set based on the user's selection via a switch
-    */
-    logic current_clip;
-    assign memory_current_bank_o = current_clip;
-
+    
     //State swap
     always_ff @(posedge clock_i or negedge reset_i) begin
         if (reset_i) begin
@@ -76,37 +79,35 @@ module Controller(
             CONTROLLER_STATE_RESET:
             begin
                 //reset all state and components
-                current_clip <= 0;
+                current_clip_o <= 0;
+                memory_rw_o <= 0;
                 timer_enable_o <= 0;
                 serializer_enable_o <= 0;
                 deserializer_enable_o <= 0;
-                address_counter_enable <= 0;
-
+                
                 next_state <= CONTROLLER_STATE_IDLE;
             end
             CONTROLLER_STATE_IDLE:
             begin
-                if (play_command_i) 
+                if (play_command_i && !play_command_last) 
                 begin
                     //Sample the clip 
-                    current_clip <= play_clip_select_i;
+                    current_clip_o <= play_clip_select_i;
                     //Set the state
                     next_state <= CONTROLLER_STATE_PLAYING;
-                end else if(record_command_i) begin
-                    current_clip <= record_clip_select_i;
+                end else if(record_command_i && !record_command_last) begin
+                    current_clip_o <= record_clip_select_i;
                     next_state <= CONTROLLER_STATE_RECORDING;
                 end
             end
             CONTROLLER_STATE_PLAYING:
             begin
-                //Begin the address counter
-                address_counter_enable <= 1'b1;
                 //Set the memory bus to read
                 memory_rw_o <= 1'b0;
                 //Enable the timer
                 timer_enable_o <= 1'b1;
-                //Enable the deserializer
-                deserializer_enable_o <= 1'b1;
+                //Enable the serializer
+                serializer_enable_o <= 1'b1;
 
                 //If the timer says we're done, go back to the reset state
                 if (timer_done_i) begin
@@ -115,15 +116,13 @@ module Controller(
             end
             CONTROLLER_STATE_RECORDING:
             begin
-                //Begin the address counter
-                address_counter_enable <= 1'b1;
                 //Set the memory bus to write
-                memory_rw_o <= 1'b1;
+                memory_rw_o <= 1;
                 //Enable the timer
-                timer_enable_o <= 1'b1;
-                //Enable the serializer
-                serializer_enable_o <= 1'b1;
-
+                timer_enable_o <= 1;
+                //Enable the deserializer
+                deserializer_enable_o <= 1;
+                
                 //If the timer says we're done, go back to the reset state
                 if (timer_done_i) begin
                     next_state <= CONTROLLER_STATE_RESET;

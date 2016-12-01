@@ -1,6 +1,10 @@
 `timescale 1ns / 1ps
 
-module Main (
+module Main #(
+    parameter WORD_LENGTH = 16,
+    parameter SYSTEM_FREQUENCY = 100000000,
+    parameter SAMPLING_FREQUENCY = 1000000)
+(
     input logic clock_i,                //100 Mhz Clock input
     //User Input
     input logic reset_i,                 //Reset signal
@@ -37,7 +41,7 @@ module Main (
     Synchronizer record_command_sync(clock_i, reset_i, record_i, record_command);
     Synchronizer play_clip_selection_sync(clock_i, reset_i, play_clip_select_i, play_clip_selection);
     Synchronizer record_clip_selection_sync(clock_i, reset_i, record_clip_select_i, record_clip_selection);
-
+    
     //LED
     logic [3:0] play_clip_value;
     logic [3:0] record_clip_value;
@@ -46,19 +50,19 @@ module Main (
     //Timer
     logic timer_enable;
     logic timer_done;
-    Timer timer(clock_i, timer_enable, timer_done);
+    Timer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) timer(clock_i, timer_enable, timer_done);
 
     //Serializer
     logic serializer_enable;
     logic serializer_done;
     logic [15:0] serializer_data;
-    Serializer serializer(clock_i, serializer_enable, serializer_done, serializer_data, pwm_audio_o);
+    Serializer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) serializer(clock_i, serializer_enable, serializer_done, serializer_data, pwm_audio_o);
 
     //Deserializer
     logic deserializer_enable;
     logic deserializer_done;
     logic [15:0] deserializer_data;
-    Deserializer deserializer(
+    Deserializer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) deserializer(
         clock_i,
         deserializer_enable,
         deserializer_done,
@@ -69,44 +73,61 @@ module Main (
         
     //Memory
     logic [16:0] memory_address;
-    logic memory_current_bank;  //The current memory bank for the action
+    logic current_clip;
     logic memory_rw;            //Will be 0 for read, 1 for write
     
-    logic memory_block_0_wea;   //Bank 0 write enable
     logic memory_block_0_enable;//Bank 0 enable
-    //Enable writing if the current bank is 0 and we need to write
-    assign memory_block_0_wea = (!memory_current_bank && memory_rw);
-    //Enable memory bank 0 if the current bank is 0 and the serializer or deserializer is done
-    assign memory_block_0_enable = (!memory_current_bank && (serializer_done || deserializer_done));
+    logic memory_block_1_enable;
+    
+    assign memory_block_0_enable = !current_clip;
+    assign memory_block_1_enable = current_clip;
+    
+    logic [15:0] memory_block_0_data;
+    logic [15:0] memory_block_1_data;
+    
+    always_ff @(posedge clock_i) begin
+        if (~reset_i) begin
+            //we are in the play state
+            if (serializer_enable) begin
+                serializer_data <= (current_clip ? memory_block_0_data : memory_block_1_data);
+                if (serializer_done) begin
+                    memory_address <= memory_address + 1;
+                end
+            //we are in the record state
+            end else if (deserializer_enable) begin
+                if(deserializer_done) begin
+                    memory_address <= memory_address + 1;
+                end
+            end else begin
+                serializer_data <= 0;
+                memory_address <= 0;
+            end
+        end else begin
+            memory_address = 0;
+        end
+    end
     
     //Memory bank 0
     blk_mem_gen_0 memory_block_0 (
       .clka(clock_i),    // input wire clka
       .ena(memory_block_0_enable),      // input wire ena
-      .wea(memory_block_0_wea),      // input wire [0 : 0] wea
+      .wea(memory_rw),      // input wire [0 : 0] wea
       .addra(memory_address),  // input wire [16 : 0] addra
-      .dina(serializer_data),    // input wire [15 : 0] dina
-      .douta(deserializer_data)  // output wire [15 : 0] douta
+      .dina(deserializer_data),    // input wire [15 : 0] dina
+      .douta(memory_block_0_data)  // output wire [15 : 0] douta
     );
-    
-    logic memory_block_1_wea;
-    logic memory_block_1_enable;
-    //Enable writing if the current bank is 1 and we need to write
-    assign memory_block_1_wea = (memory_current_bank && memory_rw);
-    //Enable memory bank 1 if the current bank is ` and the serializer or deserializer is done
-    assign memory_block_1_enable = (memory_current_bank && (serializer_done || deserializer_done));
     
     //Memory block 1
     blk_mem_gen_0 memory_block_1 (
       .clka(clock_i),    // input wire clka
       .ena(memory_block_1_enable),      // input wire ena
-      .wea(memory_block_1_wea),      // input wire [0 : 0] wea
+      .wea(memory_rw),      // input wire [0 : 0] wea
       .addra(memory_address),  // input wire [16 : 0] addra
-      .dina(serializer_data),    // input wire [15 : 0] dina
-      .douta(deserializer_data)  // output wire [15 : 0] douta
+      .dina(deserializer_data),    // input wire [15 : 0] dina
+      .douta(memory_block_1_data)  // output wire [15 : 0] douta
     );
-
-    Controller controller(
+    
+    Controller #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) controller(
         .clock_i(clock_i),                //100 Mhz Clock input
         .reset_i(reset_i),                 //Reset signal
         .play_command_i(play_command),         //The play command from the user (SYNCHRONIZED)
@@ -131,8 +152,7 @@ module Main (
         .deserializer_enable_o(deserializer_enable), //Enable for the deserializer
 
         //Memory I/O
-        .memory_addr_o(memory_address),   //Address for the memory banks
         .memory_rw_o(memory_rw),                       //The read/write switch for memory
-        .memory_current_bank_o(memory_current_bank)
+        .current_clip_o(current_clip)
         );
 endmodule
