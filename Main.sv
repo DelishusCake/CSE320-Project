@@ -14,8 +14,8 @@ module Main #(
     input logic record_clip_select_i,   //The clip selection from the user
     
     //LED outputs
-    output logic [6:0] cathode_play_o,
-    output logic [6:0] cathode_record_o,
+    output logic [6:0] cathode_o,
+    output logic [7:0] anode_o,
     
     //Audio I/O
     //PWM Microphone related signals
@@ -45,12 +45,14 @@ module Main #(
     //LED
     logic [3:0] play_clip_value;
     logic [3:0] record_clip_value;
-    //TODO: LED DRIVERS GO HERE
-
-    //Timer
-    logic timer_enable;
-    logic timer_done;
-    Timer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) timer(clock_i, timer_enable, timer_done);
+    LED led(
+        .clock_i(clock_i),
+        .reset_i(reset_i),
+        .play_clip_i(play_clip_value),
+        .record_clip_i(record_clip_value),
+        .anode_o(anode_o),
+        .cathode_o(cathode_o)
+    );
 
     //Serializer
     logic serializer_enable;
@@ -70,7 +72,15 @@ module Main #(
         pdm_clk_o,
         pdm_data_i,
         pdm_lrsel_o);
-        
+
+    //Timer
+    logic timer_enable;
+    logic timer_tick;
+    logic timer_done;
+    Timer #(WORD_LENGTH, SYSTEM_FREQUENCY, SAMPLING_FREQUENCY) timer(clock_i, timer_enable, timer_tick, timer_done);
+    
+    assign timer_tick = timer_enable & (deserializer_done | serializer_done);
+
     //Memory
     logic [16:0] memory_address;
     logic current_clip;

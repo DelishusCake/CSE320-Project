@@ -7,6 +7,7 @@ module Timer #(
 (
     input logic clock_i,
     input logic enable_i,
+    input logic tick_i,
     output logic done_o
 );
     logic [WORD_LENGTH-1:0] counter;
@@ -14,10 +15,12 @@ module Timer #(
         if (done_o)
             done_o <= 0;
         if (enable_i) begin
-            counter = counter + 1;
-            if (counter == (2*SYSTEM_FREQUENCY)) begin
-                counter <= 0;
-                done_o <= 1'b1;
+            if (tick_i) begin
+                counter = counter + 1;
+                if (counter == (2*62500)) begin
+                    counter <= 0;
+                    done_o <= 1'b1;
+                end
             end
         end else begin
             counter <= 0;
