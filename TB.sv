@@ -183,22 +183,22 @@ module TB #(
     initial begin
         clock_i = 0;
         reset_i = 1;
-        pdm_data_i = 0;
+        pdm_data_i = 1;
         play_clip_select_i = 0;
         record_clip_select_i = 0;
         play_i = 0;
         record_i = 0;
     #10 reset_i = 0;
     #10 play_clip_select_i = 1;
-    #10 play_i = 1;
-    #10 play_i = 0;
+    #10 record_i = 1;
+    #10 record_i = 0;
     end
     
     always begin
     #5  clock_i = ~clock_i;
     end
     
-    always begin
-    #50 pdm_data_i = ~pdm_data_i;
-    end
+    //always begin
+    //#50 pdm_data_i = ~pdm_data_i;
+    //end
 endmodule

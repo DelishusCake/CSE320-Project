@@ -24,7 +24,7 @@ module Deserializer #(
     assign pdm_clk_o = scaled_clock;
 
     //Shift register index (0-16)
-    logic [7:0] shift_count;
+    logic [WORD_LENGTH-1:0] shift_index;
 
     always_ff @(posedge clock_i) begin
         if (enable_i & ~done_o) begin
@@ -35,19 +35,19 @@ module Deserializer #(
             end
             if (scaled_clock & ~scaled_clock_last) begin
                 //insert the sampled value at the current index
-                data_o[0] = pdm_data_i;
-                data_o = data_o <<< 1;
-                shift_count = shift_count + 1;
-                if (shift_count == 16) begin
+                data_o[shift_index] = pdm_data_i;
+                if (shift_index == 0) begin
                     //Raise the done signal if we have sampled 16 values
                     done_o = 1;
+                end else begin
+                    shift_index = shift_index - 1;
                 end
             end
             scaled_clock_last = scaled_clock;
        end else begin
            done_o = 0;
            
-           shift_count = 0;
+           shift_index = (WORD_LENGTH-1);
            
            scaled_clock = 0;
            scaled_clock_last = 0;

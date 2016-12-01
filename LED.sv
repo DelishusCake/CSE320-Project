@@ -3,7 +3,8 @@
 module LED #(
     parameter WORD_LENGTH = 16,
     parameter SYSTEM_FREQUENCY = 100000000,
-    parameter SAMPLING_FREQUENCY = 1000000)
+    parameter SAMPLING_FREQUENCY = 1000000,
+    parameter LED_FREQUENCY = 1000)
 (
 	input logic clock_i,
 	input logic reset_i,
@@ -12,9 +13,7 @@ module LED #(
 	output logic [7:0] anode_o,
 	output logic [6:0] cathode_o
 );
-    `define LED_FREQUENCY 1000;
-    
-	logic scaled_clock;
+    logic scaled_clock;
     logic [31:0] clock_counter;
 
 	always_ff @(posedge clock_i) begin
