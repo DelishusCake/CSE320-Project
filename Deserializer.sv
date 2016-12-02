@@ -27,7 +27,9 @@ module Deserializer #(
     logic [WORD_LENGTH-1:0] shift_index;
 
     always_ff @(posedge clock_i) begin
-        if (enable_i & ~done_o) begin
+        if (enable_i) begin
+            if (done_o)
+                done_o = 1'b0;
             clock_counter = clock_counter + 1;
             if(clock_counter == ((SYSTEM_FREQUENCY/SAMPLING_FREQUENCY)/2)) begin
                 scaled_clock = ~scaled_clock;
@@ -39,6 +41,7 @@ module Deserializer #(
                 if (shift_index == 0) begin
                     //Raise the done signal if we have sampled 16 values
                     done_o = 1;
+                    shift_index = (WORD_LENGTH-1);
                 end else begin
                     shift_index = shift_index - 1;
                 end

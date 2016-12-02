@@ -131,7 +131,7 @@ module Main #(
     );
     
     blk_mem_gen_0 memory_block_0 (
-      .clka(clock_i),    // input wire clka
+      .clka(timer_tick_i),    // input wire clka
       .ena(memory_0_enable_o),      // input wire ena
       .wea(memory_rw_o),      // input wire [0 : 0] wea
       .addra(memory_address),  // input wire [16 : 0] addra
@@ -139,7 +139,7 @@ module Main #(
       .douta(memory_0_data)  // output wire [15 : 0] douta
     );    
     blk_mem_gen_0 memory_block_1 (
-      .clka(clock_i),    // input wire clka
+      .clka(timer_tick_i),    // input wire clka
       .ena(memory_1_enable_o),      // input wire ena
       .wea(memory_rw_o),      // input wire [0 : 0] wea
       .addra(memory_address),  // input wire [16 : 0] addra
